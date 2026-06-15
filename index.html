@@ -269,8 +269,8 @@ button.b.sym { font-size: 15px; background: var(--canvas); }
     <div class="sec">Exponential & Logarithm</div>
     <div class="g4" style="margin-bottom:5px">
       <button class="b fn" onclick="fn('log')">ln</button>
-      <button class="b fn" onclick="ins('log(')+'log(10))')">log₁₀</button>
-      <button class="b fn" onclick="ins('log(')+'log(2))')">log₂</button>
+      <button class="b fn" onclick="fn('log10')">log₁₀</button>
+      <button class="b fn" onclick="fn('log2')">log₂</button>
       <button class="b fn" onclick="ins('e^(')">eˣ</button>
       <button class="b fn" onclick="fn('sqrt')">√x</button>
       <button class="b fn" onclick="fn('cbrt')">∛x</button>
@@ -490,12 +490,46 @@ function del() {
 }
 function clearResultLine() { document.getElementById('result-line').textContent = ''; }
 
+// ── Preprocess expr for nerdamer (expand log10/log2) ───────────────────
+function expandLogBases(s) {
+  // Replace log10(arg) and log2(arg) with log(arg)/log(10|2)
+  // Handles nested parentheses correctly
+  function expand(str, fname, base) {
+    let out = '', i = 0;
+    while (i < str.length) {
+      if (str.startsWith(fname + '(', i)) {
+        let depth = 0, j = i + fname.length;
+        while (j < str.length) {
+          if (str[j] === '(') depth++;
+          else if (str[j] === ')') { depth--; if (depth === 0) break; }
+          j++;
+        }
+        const arg = str.slice(i + fname.length + 1, j);
+        out += `log(${arg})/log(${base})`;
+        i = j + 1;
+      } else {
+        out += str[i++];
+      }
+    }
+    return out;
+  }
+  return expand(expand(s, 'log10', 10), 'log2', 2);
+}
+
 // ── LaTeX conversion ────────────────────────────────────────────────────
 function toLatex(s) {
-  try { return nerdamer(s).toTeX(); } catch(e) { return fallbackLatex(s); }
+  // For expressions with log10/log2, use fallback so they show as \log_{10}
+  if (/log10\(|log2\(/.test(s)) return fallbackLatex(s);
+  try {
+    return nerdamer(s).toTeX().replace(/\\log/g, '\\ln');
+  } catch(e) { return fallbackLatex(s); }
 }
 function fallbackLatex(s) {
   return s
+    // log10 and log2 before generic log
+    .replace(/log10\(/g, '\\log_{10}(')
+    .replace(/log2\(/g, '\\log_{2}(')
+    .replace(/\blog\(/g, '\\ln(')
     .replace(/alpha/g,'\\alpha').replace(/beta/g,'\\beta').replace(/gamma/g,'\\gamma')
     .replace(/delta/g,'\\delta').replace(/epsilon/g,'\\epsilon').replace(/zeta/g,'\\zeta')
     .replace(/eta/g,'\\eta').replace(/theta/g,'\\theta').replace(/iota/g,'\\iota')
@@ -529,7 +563,7 @@ function render() {
 function calc() {
   if (!expr) return;
   try {
-    let e = expr;
+    let e = expandLogBases(expr);
     // Degree mode: wrap trig calls
     if (angleMode === 'DEG') {
       e = e.replace(/\b(sin|cos|tan|cot|sec|csc)\(/g, (m, fn) => `${fn}(pi/180*`);
@@ -599,10 +633,10 @@ function doDerivative() {
   const ord = parseInt(document.getElementById('cx-ord').value) || 1;
   if (!e) { setCalcError('Enter an expression'); return; }
   try {
-    let r = e;
+    let r = expandLogBases(e);
     for (let i = 0; i < ord; i++) r = nerdamer('diff(' + r + ',' + v + ')').text();
-    const rTex = nerdamer(r).toTeX();
-    const eTex = nerdamer(e).toTeX();
+    const rTex = nerdamer(r).toTeX().replace(/\\log/g, '\\ln');
+    const eTex = toLatex(e);
     const ordSup = ord > 1 ? `^{${ord}}` : '';
     setCalcResult(`\\frac{d${ordSup}}{d${v}${ordSup}}\\left[${eTex}\\right] = ${rTex}`);
   } catch(err) { setCalcError('Error: ' + err.message); }
@@ -620,14 +654,15 @@ function doIntegral() {
   const hi = document.getElementById('cx-hi').value.trim();
   if (!e) { setCalcError('Enter an expression'); return; }
   try {
-    const eTex = nerdamer(e).toTeX();
+    const ne = expandLogBases(e);
+    const eTex = toLatex(e);
     if (lo && hi) {
-      const r = nerdamer('defint(' + e + ',' + lo + ',' + hi + ',' + v + ')').evaluate().text();
+      const r = nerdamer('defint(' + ne + ',' + lo + ',' + hi + ',' + v + ')').evaluate().text();
       const loTex = fallbackLatex(lo), hiTex = fallbackLatex(hi);
       setCalcResult(`\\int_{${loTex}}^{${hiTex}} ${eTex}\\, d${v} = ${r}`);
     } else {
-      const r = nerdamer('integrate(' + e + ',' + v + ')').text();
-      const rTex = nerdamer(r).toTeX();
+      const r = nerdamer('integrate(' + ne + ',' + v + ')').text();
+      const rTex = nerdamer(r).toTeX().replace(/\\log/g, '\\ln');
       setCalcResult(`\\int ${eTex}\\, d${v} = ${rTex} + C`);
     }
   } catch(err) { setCalcError('Error: ' + err.message); }
