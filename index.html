@@ -187,17 +187,6 @@ button.b.sym { font-size: 15px; background: var(--canvas); }
 }
 .prop-box .pr { margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
 .prop-label { min-width: 110px; color: var(--muted); }
-.calc-footer {
-  background: var(--canvas);
-  border-top: 1px solid var(--neutral);
-  padding: 6px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.calc-footer .ft-time { font-size: 15px; font-weight: bold; color: var(--text); letter-spacing: 1px; }
-.calc-footer .ft-date { font-size: 11px; color: var(--muted); }
-.calc-footer .ft-tz   { font-size: 9px; color: var(--neutral); letter-spacing: 1px; text-transform: uppercase; }
 
 /* ── Layout wrapper ── */
 .app-wrap { display: flex; gap: 20px; align-items: flex-start; }
@@ -529,14 +518,6 @@ canvas.ap-canvas { display: block; width: 100%; height: 55px; margin: 4px 0; }
 
     <div class="sec" style="margin-top:8px">Key Properties</div>
     <div class="prop-box" id="lp-props"></div>
-  </div>
-
-  <div class="calc-footer">
-    <div>
-      <div class="ft-time" id="ft-time">—</div>
-      <div class="ft-date" id="ft-date">—</div>
-    </div>
-    <div class="ft-tz">Eastern Time</div>
   </div>
 
 </div><!-- /.calc-wrap -->
@@ -1250,17 +1231,6 @@ function apInit() {
 }
 
 apInit();
-
-// ── Clock (Eastern Time) ────────────────────────────────────────────────
-function updateClock() {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-  const dateStr = now.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  document.getElementById('ft-time').textContent = timeStr;
-  document.getElementById('ft-date').textContent = dateStr;
-}
-updateClock();
-setInterval(updateClock, 1000);
 </script>
 </body>
 </html>
