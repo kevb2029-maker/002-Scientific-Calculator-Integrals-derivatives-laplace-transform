@@ -1,1 +1,27 @@
+# Vercel
 .vercel
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies (if any are ever added)
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
