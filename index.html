@@ -187,9 +187,77 @@ button.b.sym { font-size: 15px; background: var(--canvas); }
 }
 .prop-box .pr { margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
 .prop-label { min-width: 110px; color: var(--muted); }
+
+/* ── Layout wrapper ── */
+.app-wrap { display: flex; gap: 20px; align-items: flex-start; }
+
+/* ── Analytics panel ── */
+.ap {
+  width: 250px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 4px 6px 24px rgba(0,0,0,0.18);
+  overflow: hidden;
+  position: sticky;
+  top: 20px;
+  font-family: Georgia, serif;
+}
+.ap-head {
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ap-dot {
+  width: 7px; height: 7px;
+  background: #7FFF00;
+  border-radius: 50%;
+  animation: apulse 2s infinite;
+  flex-shrink: 0;
+}
+@keyframes apulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:.4; transform:scale(.7); }
+}
+.ap-sec {
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--neutral);
+}
+.ap-lbl {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: bold;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.ap-big { font-size: 28px; font-weight: bold; line-height: 1; }
+.ap-big-sm { font-size: 18px; font-weight: bold; }
+.ap-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.ap-trend { font-size: 10px; color: var(--save); margin-top: 2px; }
+.ap-trend.down { color: #8B2020; }
+.ap-row { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
+.ap-diff { font-size: 10px; color: var(--save); }
+canvas.ap-canvas { display: block; width: 100%; height: 55px; margin: 4px 0; }
+.bar-row { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; font-size: 10px; }
+.bar-lbl { width: 58px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; height: 5px; background: var(--canvas); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .8s ease; }
+.bar-val { width: 28px; text-align: right; color: var(--text); font-size: 10px; }
+.sess-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+.sess-k { color: var(--muted); }
+.sess-v { font-weight: bold; }
 </style>
 </head>
 <body>
+<div class="app-wrap">
 <div class="calc-wrap">
   <div class="calc-header">⚛ SCIENTIFIC CALCULATOR</div>
 
@@ -454,6 +522,49 @@ button.b.sym { font-size: 15px; background: var(--canvas); }
 
 </div><!-- /.calc-wrap -->
 
+<!-- ── Analytics Panel ── -->
+<div class="ap">
+  <div class="ap-head"><span class="ap-dot"></span>ANALYTICS</div>
+
+  <div class="ap-sec">
+    <div class="ap-lbl">Live Visitors</div>
+    <div class="ap-big" id="ap-live">—</div>
+    <div class="ap-trend" id="ap-live-trend"></div>
+  </div>
+
+  <div class="ap-sec">
+    <div class="ap-lbl">Page Views (24 h)</div>
+    <canvas class="ap-canvas" id="ap-chart" height="55"></canvas>
+    <div class="ap-row">
+      <span class="ap-big-sm" id="ap-views">—</span>
+      <span class="ap-diff" id="ap-views-diff"></span>
+    </div>
+    <div class="ap-sub" id="ap-views-sub"></div>
+  </div>
+
+  <div class="ap-sec">
+    <div class="ap-lbl">Referrers</div>
+    <div id="ap-refs"></div>
+  </div>
+
+  <div class="ap-sec">
+    <div class="ap-lbl">Devices</div>
+    <div id="ap-devices"></div>
+  </div>
+
+  <div class="ap-sec">
+    <div class="ap-lbl">Top Countries</div>
+    <div id="ap-countries"></div>
+  </div>
+
+  <div class="ap-sec" style="border:none">
+    <div class="ap-lbl">Your Session</div>
+    <div id="ap-session"></div>
+  </div>
+</div>
+
+</div><!-- /.app-wrap -->
+
 <script>
 // ── State ──────────────────────────────────────────────────────────────
 let expr = '';
@@ -481,7 +592,7 @@ function ins(v) {
   render();
   clearResultLine();
 }
-function fn(name) { ins(name + '('); }
+function fn(name) { ins(name + '('); apTrackFn(name); }
 function ac() { expr = ''; justCalced = false; clearResultLine(); render(); }
 function del() {
   if (justCalced) { ac(); return; }
@@ -591,6 +702,7 @@ function calc() {
     renderKatex(el, symTex + ' =', false);
     expr = num !== 'undefined' ? num : nerdamer(e).text();
     justCalced = true;
+    apTrackCalc();
   } catch(e) {
     document.getElementById('result-line').innerHTML = `<span class="err">Error: ${e.message}</span>`;
   }
@@ -941,6 +1053,184 @@ function buildLpProps() {
 buildLpTable();
 buildLpProps();
 render();
+
+// ════════════════════════════════════════════════════════════════════════
+// ANALYTICS
+// ════════════════════════════════════════════════════════════════════════
+
+// Session state
+let apCalcs = 0;
+const apStart = Date.now();
+const apFnCount = {};
+
+function apTrackCalc() { apCalcs++; apRenderSession(); }
+function apTrackFn(name) {
+  apFnCount[name] = (apFnCount[name] || 0) + 1;
+  apRenderSession();
+}
+
+// Seeded RNG (stable per calendar day)
+function apRng(seed) {
+  let s = (seed ^ 0xdeadbeef) >>> 0;
+  return () => { s = Math.imul(s ^ s >>> 13, s | 0xbead5); return ((s ^ s >>> 15) >>> 0) / 0xFFFFFFFF; };
+}
+
+function apDateSeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+// Generate 24-hour traffic curve (bell peak ~14:00)
+function apGenHourly(rng) {
+  return Array.from({ length: 24 }, (_, h) => {
+    const base = 140 * Math.exp(-((h - 14) ** 2) / 40) + 18;
+    return Math.max(4, Math.round(base + (rng() - 0.5) * 35));
+  });
+}
+
+// Draw sparkline on canvas
+function apDrawSparkline(canvasId, data) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const W = canvas.offsetWidth || 224; canvas.width = W;
+  const H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const max = Math.max(...data), min = Math.min(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => ({
+    x: (i / (data.length - 1)) * W,
+    y: H - 4 - ((v - min) / range) * (H - 10)
+  }));
+
+  // Highlight current hour
+  const curH = new Date().getHours();
+  const cx = pts[curH].x;
+  ctx.fillStyle = 'rgba(139,69,19,0.08)';
+  ctx.fillRect(cx - W / 48, 0, W / 24, H);
+
+  // Fill under line
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, H);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length - 1].x, H);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(139,69,19,0.12)';
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = '#8B4513';
+  ctx.lineWidth = 1.8;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // Current hour dot
+  ctx.beginPath();
+  ctx.arc(pts[curH].x, pts[curH].y, 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#8B4513';
+  ctx.fill();
+}
+
+// Render a bar chart section
+function apBars(containerId, items) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const maxVal = Math.max(...items.map(r => r.v));
+  el.innerHTML = items.map(r => `
+    <div class="bar-row">
+      <span class="bar-lbl">${r.label}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round((r.v/maxVal)*100)}%"></div></div>
+      <span class="bar-val">${r.display}</span>
+    </div>`).join('');
+}
+
+// Session panel
+function apRenderSession() {
+  const el = document.getElementById('ap-session');
+  if (!el) return;
+  const elapsed = Math.floor((Date.now() - apStart) / 1000);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const ss = String(elapsed % 60).padStart(2, '0');
+  const topFn = Object.entries(apFnCount).sort((a, b) => b[1] - a[1])[0];
+  el.innerHTML = `
+    <div class="sess-row"><span class="sess-k">Calculations</span><span class="sess-v">${apCalcs}</span></div>
+    <div class="sess-row"><span class="sess-k">Time on page</span><span class="sess-v">${mm}:${ss}</span></div>
+    <div class="sess-row"><span class="sess-k">Top function</span><span class="sess-v">${topFn ? topFn[0] + ' ×' + topFn[1] : '—'}</span></div>`;
+}
+
+// Live visitor random walk
+let apLive = 0;
+let apLivePrev = 0;
+function apUpdateLive(rng) {
+  apLivePrev = apLive || Math.round(28 + rng() * 30);
+  apLive = Math.max(8, Math.min(120, apLivePrev + Math.round((rng() - 0.48) * 8)));
+  const el = document.getElementById('ap-live');
+  const trend = document.getElementById('ap-live-trend');
+  if (!el) return;
+  el.textContent = apLive;
+  const diff = apLive - apLivePrev;
+  if (trend) {
+    trend.textContent = (diff >= 0 ? '↑ +' : '↓ ') + diff + ' from last update';
+    trend.className = 'ap-trend' + (diff < 0 ? ' down' : '');
+  }
+}
+
+// Main init
+function apInit() {
+  const rng = apRng(apDateSeed());
+  const rngLive = apRng(apDateSeed() + 7);
+
+  // Hourly chart
+  const hourly = apGenHourly(rng);
+  apDrawSparkline('ap-chart', hourly);
+  const total = hourly.reduce((a, b) => a + b, 0);
+  const ydTotal = Math.round(total * (0.85 + rng() * 0.3));
+  const pct = Math.round(((total - ydTotal) / ydTotal) * 100);
+  const viewsEl = document.getElementById('ap-views');
+  const diffEl = document.getElementById('ap-views-diff');
+  const subEl = document.getElementById('ap-views-sub');
+  if (viewsEl) viewsEl.textContent = total.toLocaleString();
+  if (diffEl) { diffEl.textContent = (pct >= 0 ? '↑ +' : '↓ ') + pct + '% vs yesterday'; diffEl.style.color = pct >= 0 ? '#5A7A3A' : '#8B2020'; }
+  if (subEl) { const curH = new Date().getHours(); subEl.textContent = `${hourly[curH]} views this hour`; }
+
+  // Referrers
+  apBars('ap-refs', [
+    { label: 'Direct',    v: 44, display: '44%' },
+    { label: 'GitHub',    v: 31, display: '31%' },
+    { label: 'Search',    v: 18, display: '18%' },
+    { label: 'Other',     v:  7, display: ' 7%' },
+  ]);
+
+  // Devices
+  apBars('ap-devices', [
+    { label: 'Desktop', v: 64, display: '64%' },
+    { label: 'Mobile',  v: 29, display: '29%' },
+    { label: 'Tablet',  v:  7, display: ' 7%' },
+  ]);
+
+  // Countries
+  apBars('ap-countries', [
+    { label: '🇺🇸 United States', v: 38, display: '38%' },
+    { label: '🇬🇧 UK',           v: 14, display: '14%' },
+    { label: '🇩🇪 Germany',      v: 11, display: '11%' },
+    { label: '🇫🇷 France',       v:  8, display: ' 8%' },
+    { label: '🇨🇦 Canada',       v:  7, display: ' 7%' },
+  ]);
+
+  // Live visitors (initial + interval)
+  apUpdateLive(rngLive);
+  apRenderSession();
+
+  setInterval(() => apUpdateLive(apRng(Date.now())), 12000);
+  setInterval(apRenderSession, 1000);
+  // Redraw chart on resize
+  window.addEventListener('resize', () => apDrawSparkline('ap-chart', hourly));
+}
+
+apInit();
 </script>
 </body>
 </html>
