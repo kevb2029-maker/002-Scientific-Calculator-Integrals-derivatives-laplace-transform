@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scientific Calculator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Algebra.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Calculus.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Extra.js"></script>
+<style>
+:root {
+  --bg: #F5F0E8;
+  --panel: #EDE8DC;
+  --text: #000000;
+  --muted: #555555;
+  --accent: #8B4513;
+  --save: #5A7A3A;
+  --neutral: #A09070;
+  --canvas: #E8E0D0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Georgia, serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+}
+.calc-wrap {
+  width: 560px;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 4px 6px 24px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+.calc-header {
+  background: var(--accent);
+  color: #fff;
+  text-align: center;
+  padding: 11px 16px;
+  font-size: 14px;
+  letter-spacing: 2.5px;
+  font-weight: bold;
+}
+/* Display */
+.display {
+  background: var(--canvas);
+  padding: 12px 16px 10px;
+  border-bottom: 2px solid var(--neutral);
+  min-height: 96px;
+  position: relative;
+}
+.expr-line {
+  font-size: 13px;
+  color: var(--muted);
+  min-height: 20px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 4px;
+}
+.result-line {
+  font-size: 26px;
+  text-align: right;
+  min-height: 38px;
+  overflow-x: auto;
+}
+.angle-toggle {
+  position: absolute;
+  top: 8px; right: 10px;
+  font-size: 11px;
+  background: var(--panel);
+  border: 1px solid var(--neutral);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  color: var(--accent);
+  font-family: Georgia, serif;
+  font-weight: bold;
+}
+.angle-toggle:hover { background: var(--bg); }
+/* Tabs */
+.tabs {
+  display: flex;
+  background: var(--bg);
+  border-bottom: 2px solid var(--accent);
+}
+.tab {
+  flex: 1;
+  padding: 9px 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  font-family: Georgia, serif;
+  border-bottom: 3px solid transparent;
+  transition: all 0.15s;
+  margin-bottom: -2px;
+}
+.tab:hover { background: var(--canvas); color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
+/* Pads */
+.pad { padding: 10px 12px; display: none; }
+.pad.active { display: block; }
+/* Grids */
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; }
+.g5 { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; }
+.g6 { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; }
+.g7 { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
+.sec { font-size: 10px; color: var(--accent); font-weight: bold; letter-spacing: 1px;
+       text-transform: uppercase; margin: 8px 0 4px; }
+/* Buttons */
+button.b {
+  padding: 10px 4px;
+  border: 1px solid var(--neutral);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: Georgia, serif;
+  transition: all 0.12s;
+  min-height: 40px;
+  line-height: 1.2;
+}
+button.b:hover { background: var(--canvas); border-color: var(--accent); }
+button.b:active { background: var(--accent); color: #fff; transform: scale(0.97); }
+button.b.op { background: var(--neutral); color: #fff; border-color: var(--neutral); }
+button.b.op:hover { background: #8B7058; }
+button.b.fn { background: var(--panel); font-size: 11px; }
+button.b.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.b.accent:hover { background: #7a3b11; }
+button.b.eq { background: var(--save); color: #fff; border-color: var(--save); font-size: 18px; }
+button.b.eq:hover { background: #4a6a2a; }
+button.b.clr { background: #8B2020; color: #fff; border-color: #8B2020; }
+button.b.clr:hover { background: #6e1818; }
+button.b.sym { font-size: 15px; background: var(--canvas); }
+/* Calculus pad inputs */
+.field { margin-bottom: 8px; }
+.field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.field input, .field select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--neutral);
+  border-radius: 4px;
+  background: var(--canvas);
+  color: var(--text);
+  font-size: 13px;
+  font-family: monospace;
+}
+.field input:focus, .field select:focus { outline: 2px solid var(--accent); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.result-box {
+  background: var(--canvas);
+  border: 1px solid var(--neutral);
+  border-radius: 6px;
+  padding: 12px 14px;
+  min-height: 56px;
+  overflow-x: auto;
+  font-size: 15px;
+}
+.result-box .placeholder { color: var(--muted); font-size: 12px; font-style: italic; }
+.err { color: #8B2020; font-size: 12px; }
+/* Laplace table */
+.ltable { width: 100%; border-collapse: collapse; font-size: 11px; }
+.ltable th { background: var(--accent); color: #fff; padding: 5px 8px; text-align: left; }
+.ltable td { padding: 4px 8px; border-bottom: 1px solid var(--canvas); }
+.ltable tr:hover td { background: var(--canvas); cursor: pointer; }
+.ltable-wrap { max-height: 220px; overflow-y: auto; border: 1px solid var(--neutral); border-radius: 4px; margin-top: 8px; }
+.prop-box {
+  background: var(--canvas);
+  border: 1px solid var(--neutral);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 11px;
+  margin-top: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.prop-box .pr { margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+.prop-label { min-width: 110px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="calc-wrap">
+  <div class="calc-header">⚛ SCIENTIFIC CALCULATOR</div>
+
+  <div class="display">
+    <button class="angle-toggle" id="angle-btn" onclick="toggleAngle()">RAD</button>
+    <div class="expr-line" id="expr-line">&nbsp;</div>
+    <div class="result-line" id="result-line"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="basic" onclick="sw('basic')">Basic</button>
+    <button class="tab" data-tab="functions" onclick="sw('functions')">Functions</button>
+    <button class="tab" data-tab="symbols" onclick="sw('symbols')">Symbols</button>
+    <button class="tab" data-tab="calculus" onclick="sw('calculus')">Calculus</button>
+    <button class="tab" data-tab="laplace" onclick="sw('laplace')">Laplace</button>
+  </div>
+
+  <!-- BASIC PAD -->
+  <div class="pad active" id="pad-basic">
+    <div class="g5" style="margin-bottom:5px">
+      <button class="b clr" onclick="ac()">AC</button>
+      <button class="b accent" onclick="del()">⌫</button>
+      <button class="b fn" onclick="ins('(')">(</button>
+      <button class="b fn" onclick="ins(')')">)</button>
+      <button class="b op" onclick="ins('%')">%</button>
+    </div>
+    <div class="g5">
+      <button class="b" onclick="ins('7')">7</button>
+      <button class="b" onclick="ins('8')">8</button>
+      <button class="b" onclick="ins('9')">9</button>
+      <button class="b op" onclick="ins('/')">÷</button>
+      <button class="b fn" onclick="fn('sqrt')">√</button>
+
+      <button class="b" onclick="ins('4')">4</button>
+      <button class="b" onclick="ins('5')">5</button>
+      <button class="b" onclick="ins('6')">6</button>
+      <button class="b op" onclick="ins('*')">×</button>
+      <button class="b fn" onclick="ins('^2')">x²</button>
+
+      <button class="b" onclick="ins('1')">1</button>
+      <button class="b" onclick="ins('2')">2</button>
+      <button class="b" onclick="ins('3')">3</button>
+      <button class="b op" onclick="ins('-')">−</button>
+      <button class="b fn" onclick="ins('^')">xⁿ</button>
+
+      <button class="b" onclick="ins('0')">0</button>
+      <button class="b" onclick="ins('.')">.</button>
+      <button class="b fn" onclick="ins('e')">e</button>
+      <button class="b op" onclick="ins('+')">+</button>
+      <button class="b eq" onclick="calc()">=</button>
+    </div>
+  </div>
+
+  <!-- FUNCTIONS PAD -->
+  <div class="pad" id="pad-functions">
+    <div class="sec">Trigonometric</div>
+    <div class="g4" style="margin-bottom:5px">
+      <button class="b fn" onclick="fn('sin')">sin</button>
+      <button class="b fn" onclick="fn('cos')">cos</button>
+      <button class="b fn" onclick="fn('tan')">tan</button>
+      <button class="b fn" onclick="fn('cot')">cot</button>
+      <button class="b fn" onclick="fn('sec')">sec</button>
+      <button class="b fn" onclick="fn('csc')">csc</button>
+      <button class="b fn" onclick="fn('asin')">sin⁻¹</button>
+      <button class="b fn" onclick="fn('acos')">cos⁻¹</button>
+      <button class="b fn" onclick="fn('atan')">tan⁻¹</button>
+      <button class="b fn" onclick="fn('atan2')">atan2</button>
+      <button class="b fn" onclick="fn('sinh')">sinh</button>
+      <button class="b fn" onclick="fn('cosh')">cosh</button>
+      <button class="b fn" onclick="fn('tanh')">tanh</button>
+      <button class="b fn" onclick="fn('coth')">coth</button>
+      <button class="b fn" onclick="fn('asinh')">sinh⁻¹</button>
+      <button class="b fn" onclick="fn('acosh')">cosh⁻¹</button>
+      <button class="b fn" onclick="fn('atanh')">tanh⁻¹</button>
+      <button class="b fn" onclick="fn('acoth')">coth⁻¹</button>
+    </div>
+    <div class="sec">Exponential & Logarithm</div>
+    <div class="g4" style="margin-bottom:5px">
+      <button class="b fn" onclick="fn('log')">ln</button>
+      <button class="b fn" onclick="ins('log(')+'log(10))')">log₁₀</button>
+      <button class="b fn" onclick="ins('log(')+'log(2))')">log₂</button>
+      <button class="b fn" onclick="ins('e^(')">eˣ</button>
+      <button class="b fn" onclick="fn('sqrt')">√x</button>
+      <button class="b fn" onclick="fn('cbrt')">∛x</button>
+      <button class="b fn" onclick="ins('^(1/')">ⁿ√x</button>
+      <button class="b fn" onclick="ins('^2')">x²</button>
+      <button class="b fn" onclick="ins('^3')">x³</button>
+      <button class="b fn" onclick="ins('^(-1)')">x⁻¹</button>
+      <button class="b fn" onclick="ins('^')">xⁿ</button>
+      <button class="b fn" onclick="fn('abs')">|x|</button>
+    </div>
+    <div class="sec">Special & Rounding</div>
+    <div class="g4">
+      <button class="b fn" onclick="fn('floor')">⌊x⌋</button>
+      <button class="b fn" onclick="fn('ceil')">⌈x⌉</button>
+      <button class="b fn" onclick="fn('round')">round</button>
+      <button class="b fn" onclick="ins('!')">n!</button>
+      <button class="b fn" onclick="fn('sign')">sgn</button>
+      <button class="b fn" onclick="fn('gamma')">Γ(x)</button>
+      <button class="b fn" onclick="fn('max')">max</button>
+      <button class="b fn" onclick="fn('min')">min</button>
+      <button class="b fn" onclick="fn('gcd')">gcd</button>
+      <button class="b fn" onclick="fn('lcm')">lcm</button>
+      <button class="b fn" onclick="fn('mod')">mod</button>
+      <button class="b fn" onclick="ins('*i')">×i</button>
+    </div>
+  </div>
+
+  <!-- SYMBOLS PAD -->
+  <div class="pad" id="pad-symbols">
+    <div class="sec">Constants</div>
+    <div class="g7" style="margin-bottom:5px">
+      <button class="b sym" onclick="ins('pi')" title="pi">π</button>
+      <button class="b sym" onclick="ins('e')" title="Euler e">e</button>
+      <button class="b sym" onclick="ins('i')" title="imaginary">i</button>
+      <button class="b sym" onclick="ins('Inf')" title="infinity">∞</button>
+      <button class="b sym" onclick="ins('phi')" title="golden ratio">φ</button>
+      <button class="b sym" onclick="ins('2*pi')" title="tau">τ</button>
+      <button class="b sym" onclick="ins('exp(1)')" title="e">ℯ</button>
+    </div>
+    <div class="sec">Greek Lowercase</div>
+    <div class="g7" style="margin-bottom:5px">
+      <button class="b sym" onclick="ins('alpha')">α</button>
+      <button class="b sym" onclick="ins('beta')">β</button>
+      <button class="b sym" onclick="ins('gamma')">γ</button>
+      <button class="b sym" onclick="ins('delta')">δ</button>
+      <button class="b sym" onclick="ins('epsilon')">ε</button>
+      <button class="b sym" onclick="ins('zeta')">ζ</button>
+      <button class="b sym" onclick="ins('eta')">η</button>
+      <button class="b sym" onclick="ins('theta')">θ</button>
+      <button class="b sym" onclick="ins('iota')">ι</button>
+      <button class="b sym" onclick="ins('kappa')">κ</button>
+      <button class="b sym" onclick="ins('lambda')">λ</button>
+      <button class="b sym" onclick="ins('mu')">μ</button>
+      <button class="b sym" onclick="ins('nu')">ν</button>
+      <button class="b sym" onclick="ins('xi')">ξ</button>
+      <button class="b sym" onclick="ins('rho')">ρ</button>
+      <button class="b sym" onclick="ins('sigma')">σ</button>
+      <button class="b sym" onclick="ins('upsilon')">υ</button>
+      <button class="b sym" onclick="ins('chi')">χ</button>
+      <button class="b sym" onclick="ins('psi')">ψ</button>
+      <button class="b sym" onclick="ins('omega')">ω</button>
+      <button class="b sym" onclick="ins('phi')">φ</button>
+    </div>
+    <div class="sec">Greek Uppercase</div>
+    <div class="g7" style="margin-bottom:5px">
+      <button class="b sym" onclick="ins('Alpha')">Α</button>
+      <button class="b sym" onclick="ins('Beta')">Β</button>
+      <button class="b sym" onclick="ins('Gamma')">Γ</button>
+      <button class="b sym" onclick="ins('Delta')">Δ</button>
+      <button class="b sym" onclick="ins('Epsilon')">Ε</button>
+      <button class="b sym" onclick="ins('Zeta')">Ζ</button>
+      <button class="b sym" onclick="ins('Eta')">Η</button>
+      <button class="b sym" onclick="ins('Theta')">Θ</button>
+      <button class="b sym" onclick="ins('Iota')">Ι</button>
+      <button class="b sym" onclick="ins('Kappa')">Κ</button>
+      <button class="b sym" onclick="ins('Lambda')">Λ</button>
+      <button class="b sym" onclick="ins('Mu')">Μ</button>
+      <button class="b sym" onclick="ins('Nu')">Ν</button>
+      <button class="b sym" onclick="ins('Xi')">Ξ</button>
+      <button class="b sym" onclick="ins('Rho')">Ρ</button>
+      <button class="b sym" onclick="ins('Sigma')">Σ</button>
+      <button class="b sym" onclick="ins('Upsilon')">Υ</button>
+      <button class="b sym" onclick="ins('Chi')">Χ</button>
+      <button class="b sym" onclick="ins('Psi')">Ψ</button>
+      <button class="b sym" onclick="ins('Omega')">Ω</button>
+      <button class="b sym" onclick="ins('Pi')">Π</button>
+    </div>
+    <div class="sec">Operators & Symbols</div>
+    <div class="g7">
+      <button class="b sym" onclick="ins('+')">+</button>
+      <button class="b sym" onclick="ins('-')">−</button>
+      <button class="b sym" onclick="ins('*')">×</button>
+      <button class="b sym" onclick="ins('/')">÷</button>
+      <button class="b sym" onclick="ins('^')">^</button>
+      <button class="b sym" onclick="ins('!')">!</button>
+      <button class="b sym" onclick="ins('sqrt(')">√</button>
+      <button class="b sym" onclick="ins('≤')" title="leq">≤</button>
+      <button class="b sym" onclick="ins('≥')" title="geq">≥</button>
+      <button class="b sym" onclick="ins('≠')" title="neq">≠</button>
+      <button class="b sym" onclick="ins('≈')" title="approx">≈</button>
+      <button class="b sym" title="partial">∂</button>
+      <button class="b sym" title="nabla">∇</button>
+      <button class="b sym" onclick="sw('calculus')" title="integral">∫</button>
+      <button class="b sym" title="double integral">∬</button>
+      <button class="b sym" title="contour">∮</button>
+      <button class="b sym" title="sum">∑</button>
+      <button class="b sym" title="product">∏</button>
+      <button class="b sym" title="in">∈</button>
+      <button class="b sym" title="not in">∉</button>
+      <button class="b sym" title="subset">⊂</button>
+      <button class="b sym" title="union">∪</button>
+    </div>
+  </div>
+
+  <!-- CALCULUS PAD -->
+  <div class="pad" id="pad-calculus">
+    <div class="field">
+      <label>Expression</label>
+      <input type="text" id="cx-expr" placeholder="e.g.  x^3 + sin(x)">
+    </div>
+    <div class="row2" style="margin-bottom:8px">
+      <div class="field" style="margin:0">
+        <label>Variable</label>
+        <input type="text" id="cx-var" value="x">
+      </div>
+      <div class="field" style="margin:0">
+        <label>Derivative order</label>
+        <input type="number" id="cx-ord" value="1" min="1" max="6">
+      </div>
+    </div>
+    <div class="row2" style="margin-bottom:8px">
+      <div class="field" style="margin:0">
+        <label>Lower bound (definite ∫)</label>
+        <input type="text" id="cx-lo" placeholder="a">
+      </div>
+      <div class="field" style="margin:0">
+        <label>Upper bound (definite ∫)</label>
+        <input type="text" id="cx-hi" placeholder="b">
+      </div>
+    </div>
+    <div class="g4" style="margin-bottom:8px">
+      <button class="b accent" onclick="doDerivative()">d/dx</button>
+      <button class="b accent" onclick="doIntegral()">∫ dx</button>
+      <button class="b fn" onclick="doSecondDeriv()">d²/dx²</button>
+      <button class="b fn" onclick="useDisplay()">← Display</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Result</div>
+    <div class="result-box" id="cx-result">
+      <span class="placeholder">Enter an expression and choose an operation</span>
+    </div>
+  </div>
+
+  <!-- LAPLACE PAD -->
+  <div class="pad" id="pad-laplace">
+    <div class="field">
+      <label>Expression (in <em>t</em> for forward, in <em>s</em> for inverse)</label>
+      <input type="text" id="lp-expr" placeholder="e.g.  t^2,  sin(2*t),  e^(3*t)">
+    </div>
+    <div class="g4" style="margin-bottom:8px">
+      <button class="b accent" onclick="doLaplace()">ℒ{f(t)}</button>
+      <button class="b fn" onclick="doInvLaplace()">ℒ⁻¹{F(s)}</button>
+      <button class="b fn" onclick="useDisplayLp()">← Display</button>
+      <button class="b fn" onclick="clearLpResult()">Clear</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Result</div>
+    <div class="result-box" id="lp-result">
+      <span class="placeholder">Enter f(t) and click ℒ{f(t)}</span>
+    </div>
+
+    <div class="sec" style="margin-top:10px">Transform Table <span style="color:var(--muted);font-weight:normal;text-transform:none;letter-spacing:0">(click a row to load)</span></div>
+    <div class="ltable-wrap">
+      <table class="ltable">
+        <thead><tr><th>f(t)</th><th>F(s) = ℒ{f(t)}</th></tr></thead>
+        <tbody id="lp-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="sec" style="margin-top:8px">Key Properties</div>
+    <div class="prop-box" id="lp-props"></div>
+  </div>
+
+</div><!-- /.calc-wrap -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let expr = '';
+let justCalced = false;
+let angleMode = 'RAD'; // 'RAD' | 'DEG'
+
+// ── Angle mode ──────────────────────────────────────────────────────────
+function toggleAngle() {
+  angleMode = angleMode === 'RAD' ? 'DEG' : 'RAD';
+  document.getElementById('angle-btn').textContent = angleMode;
+}
+
+// ── Tabs ────────────────────────────────────────────────────────────────
+function sw(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.pad').forEach(p => p.classList.remove('active'));
+  document.getElementById('pad-' + tab).classList.add('active');
+}
+
+// ── Input helpers ───────────────────────────────────────────────────────
+function ins(v) {
+  if (justCalced && /^[0-9a-zA-Z(]/.test(v)) { expr = ''; }
+  justCalced = false;
+  expr += v;
+  render();
+  clearResultLine();
+}
+function fn(name) { ins(name + '('); }
+function ac() { expr = ''; justCalced = false; clearResultLine(); render(); }
+function del() {
+  if (justCalced) { ac(); return; }
+  expr = expr.slice(0, -1);
+  render();
+}
+function clearResultLine() { document.getElementById('result-line').textContent = ''; }
+
+// ── LaTeX conversion ────────────────────────────────────────────────────
+function toLatex(s) {
+  try { return nerdamer(s).toTeX(); } catch(e) { return fallbackLatex(s); }
+}
+function fallbackLatex(s) {
+  return s
+    .replace(/alpha/g,'\\alpha').replace(/beta/g,'\\beta').replace(/gamma/g,'\\gamma')
+    .replace(/delta/g,'\\delta').replace(/epsilon/g,'\\epsilon').replace(/zeta/g,'\\zeta')
+    .replace(/eta/g,'\\eta').replace(/theta/g,'\\theta').replace(/iota/g,'\\iota')
+    .replace(/kappa/g,'\\kappa').replace(/lambda/g,'\\lambda').replace(/mu/g,'\\mu')
+    .replace(/nu/g,'\\nu').replace(/xi/g,'\\xi').replace(/rho/g,'\\rho')
+    .replace(/sigma/g,'\\sigma').replace(/upsilon/g,'\\upsilon').replace(/chi/g,'\\chi')
+    .replace(/psi/g,'\\psi').replace(/omega/g,'\\omega').replace(/phi/g,'\\phi')
+    .replace(/Gamma/g,'\\Gamma').replace(/Delta/g,'\\Delta').replace(/Theta/g,'\\Theta')
+    .replace(/Lambda/g,'\\Lambda').replace(/Xi/g,'\\Xi').replace(/Pi/g,'\\Pi')
+    .replace(/Sigma/g,'\\Sigma').replace(/Upsilon/g,'\\Upsilon').replace(/Phi/g,'\\Phi')
+    .replace(/Psi/g,'\\Psi').replace(/Omega/g,'\\Omega')
+    .replace(/\bpi\b/g,'\\pi').replace(/Inf/g,'\\infty')
+    .replace(/sqrt\(([^)]+)\)/g,'\\sqrt{$1}')
+    .replace(/\*/g,'\\cdot ');
+}
+
+function renderKatex(el, latex, display=false) {
+  try { katex.render(latex, el, { throwOnError: false, displayMode: display }); }
+  catch(e) { el.textContent = latex; }
+}
+
+// ── Main display render ─────────────────────────────────────────────────
+function render() {
+  const el = document.getElementById('expr-line');
+  if (!expr) { el.innerHTML = '&nbsp;'; return; }
+  const latex = toLatex(expr);
+  renderKatex(el, latex, false);
+}
+
+// ── Evaluate ────────────────────────────────────────────────────────────
+function calc() {
+  if (!expr) return;
+  try {
+    let e = expr;
+    // Degree mode: wrap trig calls
+    if (angleMode === 'DEG') {
+      e = e.replace(/\b(sin|cos|tan|cot|sec|csc)\(/g, (m, fn) => `${fn}(pi/180*`);
+    }
+    const sym = nerdamer(e);
+    const num = sym.evaluate().text();
+    const symTex = sym.toTeX();
+    const result = parseFloat(num);
+    let resultTex;
+    if (!isNaN(result)) {
+      // Show symbolic if different and cleaner
+      const simplified = nerdamer(e).text();
+      if (simplified !== e && simplified !== num && simplified.length < 40) {
+        resultTex = nerdamer(simplified).toTeX();
+      } else {
+        resultTex = String(parseFloat(result.toPrecision(12)));
+      }
+    } else {
+      resultTex = sym.toTeX();
+    }
+    const rl = document.getElementById('result-line');
+    renderKatex(rl, resultTex, false);
+    // Update expr-line to show input
+    const el = document.getElementById('expr-line');
+    renderKatex(el, symTex + ' =', false);
+    expr = num !== 'undefined' ? num : nerdamer(e).text();
+    justCalced = true;
+  } catch(e) {
+    document.getElementById('result-line').innerHTML = `<span class="err">Error: ${e.message}</span>`;
+  }
+}
+
+// ── Keyboard ────────────────────────────────────────────────────────────
+document.addEventListener('keydown', ev => {
+  if (ev.target.tagName === 'INPUT') return;
+  const k = ev.key;
+  if (k >= '0' && k <= '9') ins(k);
+  else if (k === '.') ins('.');
+  else if (k === '+') ins('+');
+  else if (k === '-') ins('-');
+  else if (k === '*') ins('*');
+  else if (k === '/') { ev.preventDefault(); ins('/'); }
+  else if (k === '^') ins('^');
+  else if (k === '(') ins('(');
+  else if (k === ')') ins(')');
+  else if (k === 'Enter' || k === '=') calc();
+  else if (k === 'Backspace') del();
+  else if (k === 'Escape') ac();
+});
+
+// ── Calculus ────────────────────────────────────────────────────────────
+function useDisplay() { document.getElementById('cx-expr').value = expr; }
+function useDisplayLp() { document.getElementById('lp-expr').value = expr; }
+
+function setCalcResult(latex) {
+  const el = document.getElementById('cx-result');
+  try { katex.render(latex, el, { throwOnError: false, displayMode: true }); }
+  catch(e) { el.textContent = latex; }
+}
+function setCalcError(msg) {
+  document.getElementById('cx-result').innerHTML = `<span class="err">${msg}</span>`;
+}
+
+function doDerivative() {
+  const e = document.getElementById('cx-expr').value.trim();
+  const v = document.getElementById('cx-var').value.trim() || 'x';
+  const ord = parseInt(document.getElementById('cx-ord').value) || 1;
+  if (!e) { setCalcError('Enter an expression'); return; }
+  try {
+    let r = e;
+    for (let i = 0; i < ord; i++) r = nerdamer('diff(' + r + ',' + v + ')').text();
+    const rTex = nerdamer(r).toTeX();
+    const eTex = nerdamer(e).toTeX();
+    const ordSup = ord > 1 ? `^{${ord}}` : '';
+    setCalcResult(`\\frac{d${ordSup}}{d${v}${ordSup}}\\left[${eTex}\\right] = ${rTex}`);
+  } catch(err) { setCalcError('Error: ' + err.message); }
+}
+
+function doSecondDeriv() {
+  document.getElementById('cx-ord').value = 2;
+  doDerivative();
+}
+
+function doIntegral() {
+  const e = document.getElementById('cx-expr').value.trim();
+  const v = document.getElementById('cx-var').value.trim() || 'x';
+  const lo = document.getElementById('cx-lo').value.trim();
+  const hi = document.getElementById('cx-hi').value.trim();
+  if (!e) { setCalcError('Enter an expression'); return; }
+  try {
+    const eTex = nerdamer(e).toTeX();
+    if (lo && hi) {
+      const r = nerdamer('defint(' + e + ',' + lo + ',' + hi + ',' + v + ')').evaluate().text();
+      const loTex = fallbackLatex(lo), hiTex = fallbackLatex(hi);
+      setCalcResult(`\\int_{${loTex}}^{${hiTex}} ${eTex}\\, d${v} = ${r}`);
+    } else {
+      const r = nerdamer('integrate(' + e + ',' + v + ')').text();
+      const rTex = nerdamer(r).toTeX();
+      setCalcResult(`\\int ${eTex}\\, d${v} = ${rTex} + C`);
+    }
+  } catch(err) { setCalcError('Error: ' + err.message); }
+}
+
+// ── Laplace transforms ──────────────────────────────────────────────────
+function fact(n) {
+  n = parseInt(n); if (n <= 0) return 1;
+  let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
+}
+
+function laplaceOf(raw) {
+  const e = raw.trim().replace(/\s+/g, '');
+
+  // delta / dirac
+  if (/^(delta|dirac)\(t\)$/.test(e)) return '1';
+  if (/^(delta|dirac)\(t-(.+)\)$/.test(e)) {
+    const a = e.match(/\(t-(.+)\)/)[1];
+    return `e^{-${a}s}`;
+  }
+
+  // constants
+  if (/^-?[0-9.]+$/.test(e)) return `\\frac{${e}}{s}`;
+
+  // 1 or u(t)
+  if (e === '1' || e === 'u(t)' || e === 'heaviside(t)') return `\\frac{1}{s}`;
+
+  // t alone
+  if (e === 't') return `\\frac{1}{s^2}`;
+
+  // t^n
+  let m;
+  if ((m = e.match(/^t\^(-?[0-9]+)$/))) {
+    const n = parseInt(m[1]);
+    if (n >= 0) return `\\frac{${fact(n)}}{s^{${n+1}}}`;
+  }
+
+  // e^(a*t) or e^(a t)
+  if ((m = e.match(/^e\^\((.+)\*t\)$/))) {
+    const a = m[1];
+    return `\\frac{1}{s - \\left(${fallbackLatex(a)}\\right)}`;
+  }
+
+  // sin(a*t)
+  if ((m = e.match(/^sin\((.+)\*t\)$/))) {
+    const a = m[1], al = fallbackLatex(a);
+    return `\\frac{${al}}{s^2 + \\left(${al}\\right)^2}`;
+  }
+  if (e === 'sin(t)') return `\\frac{1}{s^2+1}`;
+
+  // cos(a*t)
+  if ((m = e.match(/^cos\((.+)\*t\)$/))) {
+    const a = m[1], al = fallbackLatex(a);
+    return `\\frac{s}{s^2 + \\left(${al}\\right)^2}`;
+  }
+  if (e === 'cos(t)') return `\\frac{s}{s^2+1}`;
+
+  // sinh(a*t)
+  if ((m = e.match(/^sinh\((.+)\*t\)$/))) {
+    const a = m[1], al = fallbackLatex(a);
+    return `\\frac{${al}}{s^2 - \\left(${al}\\right)^2}`;
+  }
+
+  // cosh(a*t)
+  if ((m = e.match(/^cosh\((.+)\*t\)$/))) {
+    const a = m[1], al = fallbackLatex(a);
+    return `\\frac{s}{s^2 - \\left(${al}\\right)^2}`;
+  }
+
+  // t*e^(a*t)
+  if ((m = e.match(/^t\*e\^\((.+)\*t\)$/))) {
+    const a = m[1], al = fallbackLatex(a);
+    return `\\frac{1}{\\left(s - ${al}\\right)^2}`;
+  }
+
+  // t^n * e^(a*t)
+  if ((m = e.match(/^t\^([0-9]+)\*e\^\((.+)\*t\)$/))) {
+    const n = m[1], a = m[2], al = fallbackLatex(a);
+    return `\\frac{${fact(n)}}{\\left(s - ${al}\\right)^{${parseInt(n)+1}}}`;
+  }
+
+  // t*sin(a*t)
+  if ((m = e.match(/^t\*sin\((.+)\*t\)$/))) {
+    const a = m[1], al = fallbackLatex(a);
+    return `\\frac{2 ${al}\\, s}{\\left(s^2 + \\left(${al}\\right)^2\\right)^2}`;
+  }
+
+  // t*cos(a*t)
+  if ((m = e.match(/^t\*cos\((.+)\*t\)$/))) {
+    const a = m[1], al = fallbackLatex(a);
+    return `\\frac{s^2 - \\left(${al}\\right)^2}{\\left(s^2 + \\left(${al}\\right)^2\\right)^2}`;
+  }
+
+  // e^(a*t)*sin(b*t)
+  if ((m = e.match(/^e\^\((.+)\*t\)\*sin\((.+)\*t\)$/))) {
+    const a = m[1], b = m[2], al = fallbackLatex(a), bl = fallbackLatex(b);
+    return `\\frac{${bl}}{\\left(s - ${al}\\right)^2 + \\left(${bl}\\right)^2}`;
+  }
+
+  // e^(a*t)*cos(b*t)
+  if ((m = e.match(/^e\^\((.+)\*t\)\*cos\((.+)\*t\)$/))) {
+    const a = m[1], b = m[2], al = fallbackLatex(a), bl = fallbackLatex(b);
+    return `\\frac{s - ${al}}{\\left(s - ${al}\\right)^2 + \\left(${bl}\\right)^2}`;
+  }
+
+  // t^(1/2) = sqrt(t)
+  if (e === 't^(1/2)' || e === 'sqrt(t)') return `\\frac{\\sqrt{\\pi}}{2 s^{3/2}}`;
+
+  // 1/sqrt(pi*t)
+  if (e === '1/sqrt(pi*t)') return `\\frac{1}{\\sqrt{s}}`;
+
+  // sin(a*t)/t
+  if ((m = e.match(/^sin\((.+)\*t\)\/t$/))) {
+    const a = m[1], al = fallbackLatex(a);
+    return `\\arctan\\!\\left(\\frac{${al}}{s}\\right)`;
+  }
+
+  // u(t-a) — delayed step
+  if ((m = e.match(/^u\(t-(.+)\)$/))) {
+    const a = m[1], al = fallbackLatex(a);
+    return `\\frac{e^{-${al}s}}{s}`;
+  }
+
+  return null; // not matched
+}
+
+function doLaplace() {
+  const raw = document.getElementById('lp-expr').value.trim();
+  if (!raw) { setLpError('Enter an expression f(t)'); return; }
+  const Fs = laplaceOf(raw);
+  const el = document.getElementById('lp-result');
+  if (Fs) {
+    const eTex = fallbackLatex(raw.replace(/\s/g,''));
+    try { katex.render(`\\mathcal{L}\\!\\left\\{${eTex}\\right\\} = ${Fs}`, el, { throwOnError: false, displayMode: true }); }
+    catch(e) { el.textContent = `L{f} = ${Fs}`; }
+  } else {
+    el.innerHTML = `<span class="err">Pattern not matched. Supported forms include: <br>
+    e^(a*t), sin(a*t), cos(a*t), t^n, t*e^(a*t), t*sin/cos, e^(a*t)*sin/cos(b*t), sqrt(t), u(t-a), delta(t-a)</span>`;
+  }
+}
+
+function invLaplaceOf(raw) {
+  const e = raw.trim().replace(/\s+/g, '');
+  // 1 → delta
+  if (e === '1') return '\\delta(t)';
+  // 1/s → 1
+  if (e === '1/s') return '1 \\cdot u(t)';
+  // a/s → a
+  let m;
+  if ((m = e.match(/^(-?[0-9.]+)\/s$/))) return `${m[1]}\\, u(t)`;
+  // 1/s^n
+  if ((m = e.match(/^1\/s\^([0-9]+)$/))) {
+    const n = parseInt(m[1]);
+    return `\\frac{t^{${n-1}}}{${fact(n-1)}}\\, u(t)`;
+  }
+  // 1/(s-a)
+  if ((m = e.match(/^1\/\(s-(.+)\)$/))) return `e^{${fallbackLatex(m[1])}t}\\, u(t)`;
+  // 1/(s+a)
+  if ((m = e.match(/^1\/\(s\+(.+)\)$/))) return `e^{-${fallbackLatex(m[1])}t}\\, u(t)`;
+  // a/(s^2+a^2)
+  if ((m = e.match(/^(.+)\/\(s\^2\+(.+)\^2\)$/)) && m[1] === m[2]) {
+    const a = m[1];
+    return `\\sin(${fallbackLatex(a)}\\, t)\\, u(t)`;
+  }
+  // s/(s^2+a^2)
+  if ((m = e.match(/^s\/\(s\^2\+(.+)\^2\)$/))) return `\\cos(${fallbackLatex(m[1])}\\, t)\\, u(t)`;
+  // a/(s^2-a^2)
+  if ((m = e.match(/^(.+)\/\(s\^2-(.+)\^2\)$/)) && m[1] === m[2]) {
+    return `\\sinh(${fallbackLatex(m[1])}\\, t)\\, u(t)`;
+  }
+  // s/(s^2-a^2)
+  if ((m = e.match(/^s\/\(s\^2-(.+)\^2\)$/))) return `\\cosh(${fallbackLatex(m[1])}\\, t)\\, u(t)`;
+  // 1/(s-a)^2
+  if ((m = e.match(/^1\/\(s-(.+)\)\^2$/))) return `t\\, e^{${fallbackLatex(m[1])}t}\\, u(t)`;
+  // n!/(s-a)^(n+1)
+  if ((m = e.match(/^([0-9]+)!\/\(s-(.+)\)\^([0-9]+)$/))) {
+    const n = parseInt(m[3])-1, a = m[2];
+    return `t^{${n}}\\, e^{${fallbackLatex(a)}t}\\, u(t)`;
+  }
+  // e^(-as)/s
+  if ((m = e.match(/^e\^\(-(.+)\*s\)\/s$/))) return `u(t - ${fallbackLatex(m[1])})`;
+  // e^(-as)
+  if ((m = e.match(/^e\^\(-(.+)\*s\)$/))) return `\\delta(t - ${fallbackLatex(m[1])})`;
+  return null;
+}
+
+function doInvLaplace() {
+  const raw = document.getElementById('lp-expr').value.trim();
+  if (!raw) { setLpError('Enter an expression F(s)'); return; }
+  const ft = invLaplaceOf(raw);
+  const el = document.getElementById('lp-result');
+  if (ft) {
+    const eTex = fallbackLatex(raw.replace(/\s/g,''));
+    try { katex.render(`\\mathcal{L}^{-1}\\!\\left\\{${eTex}\\right\\} = ${ft}`, el, { throwOnError: false, displayMode: true }); }
+    catch(e) { el.textContent = `L-1{F} = ${ft}`; }
+  } else {
+    el.innerHTML = `<span class="err">Pattern not matched. Supported forms: 1/s, 1/s^n, 1/(s-a), a/(s²+a²), s/(s²+a²), etc.</span>`;
+  }
+}
+
+function setLpError(msg) {
+  document.getElementById('lp-result').innerHTML = `<span class="err">${msg}</span>`;
+}
+function clearLpResult() {
+  document.getElementById('lp-result').innerHTML = '<span class="placeholder">Cleared</span>';
+}
+
+// ── Laplace reference table ─────────────────────────────────────────────
+const lpTable = [
+  { ft: '\\delta(t)',                         Fs: '1',                                        load: 'delta(t)' },
+  { ft: 'u(t) = 1',                           Fs: '\\dfrac{1}{s}',                           load: '1' },
+  { ft: 't',                                  Fs: '\\dfrac{1}{s^2}',                          load: 't' },
+  { ft: 't^n',                                Fs: '\\dfrac{n!}{s^{n+1}}',                    load: 't^n' },
+  { ft: '\\sqrt{t}',                          Fs: '\\dfrac{\\sqrt{\\pi}}{2s^{3/2}}',         load: 'sqrt(t)' },
+  { ft: 'e^{at}',                             Fs: '\\dfrac{1}{s-a}',                          load: 'e^(a*t)' },
+  { ft: 'te^{at}',                            Fs: '\\dfrac{1}{(s-a)^2}',                     load: 't*e^(a*t)' },
+  { ft: 't^n e^{at}',                         Fs: '\\dfrac{n!}{(s-a)^{n+1}}',               load: 't^n*e^(a*t)' },
+  { ft: '\\sin(at)',                           Fs: '\\dfrac{a}{s^2+a^2}',                    load: 'sin(a*t)' },
+  { ft: '\\cos(at)',                           Fs: '\\dfrac{s}{s^2+a^2}',                    load: 'cos(a*t)' },
+  { ft: '\\sinh(at)',                          Fs: '\\dfrac{a}{s^2-a^2}',                    load: 'sinh(a*t)' },
+  { ft: '\\cosh(at)',                          Fs: '\\dfrac{s}{s^2-a^2}',                    load: 'cosh(a*t)' },
+  { ft: 't\\sin(at)',                          Fs: '\\dfrac{2as}{(s^2+a^2)^2}',             load: 't*sin(a*t)' },
+  { ft: 't\\cos(at)',                          Fs: '\\dfrac{s^2-a^2}{(s^2+a^2)^2}',         load: 't*cos(a*t)' },
+  { ft: 'e^{at}\\sin(bt)',                    Fs: '\\dfrac{b}{(s-a)^2+b^2}',               load: 'e^(a*t)*sin(b*t)' },
+  { ft: 'e^{at}\\cos(bt)',                    Fs: '\\dfrac{s-a}{(s-a)^2+b^2}',             load: 'e^(a*t)*cos(b*t)' },
+  { ft: 'u(t-a)',                              Fs: '\\dfrac{e^{-as}}{s}',                    load: 'u(t-a)' },
+  { ft: '\\delta(t-a)',                        Fs: 'e^{-as}',                                load: 'delta(t-a)' },
+  { ft: '\\dfrac{\\sin(at)}{t}',             Fs: '\\arctan\\!\\left(\\dfrac{a}{s}\\right)', load: 'sin(a*t)/t' },
+  { ft: '\\dfrac{1}{\\sqrt{\\pi t}}',        Fs: '\\dfrac{1}{\\sqrt{s}}',                  load: '1/sqrt(pi*t)' },
+];
+
+function buildLpTable() {
+  const tbody = document.getElementById('lp-tbody');
+  lpTable.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.title = 'Click to load: ' + row.load;
+    tr.onclick = () => { document.getElementById('lp-expr').value = row.load; };
+    const td1 = document.createElement('td');
+    const td2 = document.createElement('td');
+    try { katex.render(row.ft, td1, { throwOnError: false }); } catch(e) { td1.textContent = row.ft; }
+    try { katex.render(row.Fs, td2, { throwOnError: false }); } catch(e) { td2.textContent = row.Fs; }
+    tr.appendChild(td1); tr.appendChild(td2); tbody.appendChild(tr);
+  });
+}
+
+// ── Laplace properties ──────────────────────────────────────────────────
+const lpProps = [
+  { name: 'Linearity',         latex: '\\mathcal{L}\\{af+bg\\} = aF+bG' },
+  { name: 'Time shift',        latex: '\\mathcal{L}\\{f(t-a)u(t-a)\\} = e^{-as}F(s)' },
+  { name: 'Freq shift',        latex: '\\mathcal{L}\\{e^{at}f(t)\\} = F(s-a)' },
+  { name: 'Scaling',           latex: '\\mathcal{L}\\{f(at)\\} = \\tfrac{1}{a}F\\!\\left(\\tfrac{s}{a}\\right)' },
+  { name: 'Differentiation',   latex: '\\mathcal{L}\\{f\'(t)\\} = sF(s) - f(0)' },
+  { name: '2nd derivative',    latex: '\\mathcal{L}\\{f\'\'(t)\\} = s^2F(s) - sf(0) - f\'(0)' },
+  { name: 'Integration',       latex: '\\mathcal{L}\\!\\left\\{\\int_0^t f\\,d\\tau\\right\\} = \\dfrac{F(s)}{s}' },
+  { name: 'Convolution',       latex: '\\mathcal{L}\\{f*g\\} = F(s)\\cdot G(s)' },
+  { name: 'Freq differentiat.', latex: '\\mathcal{L}\\{t^n f(t)\\} = (-1)^n F^{(n)}(s)' },
+  { name: 'Initial value',     latex: '\\lim_{t\\to 0^+}f(t) = \\lim_{s\\to\\infty} sF(s)' },
+  { name: 'Final value',       latex: '\\lim_{t\\to\\infty}f(t) = \\lim_{s\\to 0} sF(s)' },
+];
+
+function buildLpProps() {
+  const box = document.getElementById('lp-props');
+  lpProps.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'pr';
+    const label = document.createElement('span');
+    label.className = 'prop-label';
+    label.textContent = p.name;
+    const eq = document.createElement('span');
+    try { katex.render(p.latex, eq, { throwOnError: false }); } catch(e) { eq.textContent = p.latex; }
+    div.appendChild(label); div.appendChild(eq); box.appendChild(div);
+  });
+}
+
+// ── Init ────────────────────────────────────────────────────────────────
+buildLpTable();
+buildLpProps();
+render();
+</script>
+</body>
+</html>
