@@ -1318,35 +1318,33 @@ function apInit() {
 apInit();
 
 // ── Contact form ────────────────────────────────────────────────────────
-document.getElementById('ct-form').addEventListener('submit', async function(e) {
+document.getElementById('ct-form').addEventListener('submit', function(e) {
   e.preventDefault();
-  const btn = document.getElementById('ct-btn');
   const status = document.getElementById('ct-status');
-  const msg = this.querySelector('textarea[name="message"]').value.trim();
-  if (!msg) { status.textContent = 'Please enter a message.'; status.style.color = '#8B2020'; return; }
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
-  status.textContent = '';
-  try {
-    const res = await fetch('https://formspree.io/[email removed]', {
-      method: 'POST',
-      headers: { 'Accept': 'application/json' },
-      body: new FormData(this)
-    });
-    if (res.ok) {
-      this.reset();
-      status.textContent = '✓ Message sent — thank you!';
-      status.style.color = '#5A7A3A';
-    } else {
-      const json = await res.json().catch(() => ({}));
-      throw new Error(json.error || 'Submission failed');
-    }
-  } catch(err) {
-    status.textContent = '✗ ' + err.message;
+  const name    = this.querySelector('[name="name"]').value.trim();
+  const replyTo = this.querySelector('[name="_replyto"]').value.trim();
+  const message = this.querySelector('[name="message"]').value.trim();
+
+  if (!message) {
+    status.textContent = 'Please enter a message.';
     status.style.color = '#8B2020';
+    return;
   }
-  btn.disabled = false;
-  btn.textContent = 'Send Message';
+
+  const subject = 'Calculator Feedback' + (name ? ' from ' + name : '');
+  let body = '';
+  if (name)    body += 'Name: '     + name    + '\n';
+  if (replyTo) body += 'Reply-to: ' + replyTo + '\n';
+  body += '\nMessage:\n' + message;
+
+  window.location.href =
+    'mailto:[email removed]'
+    + '?subject=' + encodeURIComponent(subject)
+    + '&body='    + encodeURIComponent(body);
+
+  this.reset();
+  status.textContent = '✓ Your email client has opened — just hit Send.';
+  status.style.color = '#5A7A3A';
 });
 </script>
 </body>
