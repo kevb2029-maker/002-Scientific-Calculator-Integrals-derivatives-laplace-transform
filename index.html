@@ -36,6 +36,7 @@ body {
 }
 .calc-wrap {
   width: 560px;
+  max-width: 100%;
   background: var(--panel);
   border: 2px solid var(--accent);
   border-radius: 12px;
@@ -190,11 +191,12 @@ button.b.sym { font-size: 15px; background: var(--canvas); }
 .prop-label { min-width: 110px; color: var(--muted); }
 
 /* ── Layout wrapper ── */
-.app-wrap { display: flex; gap: 20px; align-items: flex-start; }
+.app-wrap { display: flex; gap: 20px; align-items: flex-start; width: 100%; max-width: 830px; }
 
 /* ── Contact box ── */
 .contact-box {
-  width: 830px;
+  width: 100%;
+  max-width: 830px;
   background: var(--panel);
   border: 2px solid var(--accent);
   border-radius: 12px;
@@ -247,6 +249,87 @@ button.b.sym { font-size: 15px; background: var(--canvas); }
 .ct-submit:hover { background: #7a3b11; }
 .ct-submit:disabled { background: var(--neutral); cursor: not-allowed; }
 .ct-status { font-size: 12px; }
+
+/* ════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════ */
+
+/* Tablet — stack calc + analytics vertically */
+@media (max-width: 860px) {
+  .app-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .calc-wrap { width: 100%; }
+  .ap {
+    width: 100%;
+    position: static;
+  }
+  /* Analytics: show bars side by side in two columns */
+  .ap-sec:nth-child(n+4) {
+    display: inline-block;
+    width: calc(50% - 6px);
+    vertical-align: top;
+  }
+}
+
+/* Tablet narrow / large mobile */
+@media (max-width: 640px) {
+  body { padding: 12px; gap: 12px; }
+  .ct-row2 { grid-template-columns: 1fr; }
+  .ap-sec:nth-child(n+4) { display: block; width: 100%; }
+}
+
+/* Mobile — compact everything */
+@media (max-width: 480px) {
+  body { padding: 8px; gap: 10px; }
+
+  /* Display */
+  .display { padding: 10px 12px 8px; min-height: 80px; }
+  .result-line { font-size: 22px; }
+  .expr-line { font-size: 12px; }
+
+  /* Buttons */
+  button.b { font-size: 12px; min-height: 36px; padding: 8px 2px; }
+  button.b.fn { font-size: 10px; }
+  button.b.sym { font-size: 13px; }
+  button.b.eq { font-size: 16px; }
+
+  /* Grids — tighter gap */
+  .g4, .g5, .g6, .g7 { gap: 4px; }
+  .pad { padding: 8px; }
+
+  /* Tabs */
+  .tab { font-size: 10px; padding: 8px 2px; }
+
+  /* Section labels */
+  .sec { font-size: 9px; }
+
+  /* Analytics */
+  .ap-big { font-size: 22px; }
+  .ap-big-sm { font-size: 15px; }
+
+  /* Contact */
+  .ct-body { padding: 12px; }
+  .ct-intro { font-size: 12px; }
+  .ct-submit { width: 100%; }
+  .ct-actions { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+  /* Calculus inputs */
+  .row2 { grid-template-columns: 1fr; }
+  .g4.calc-action-btns, div.g4[style] { gap: 4px; }
+}
+
+/* Very small — 4-col grids become 3-col to keep buttons tappable */
+@media (max-width: 360px) {
+  .g5 { grid-template-columns: repeat(4, 1fr); }
+  .g6, .g7 { grid-template-columns: repeat(5, 1fr); }
+  button.b { min-height: 34px; font-size: 11px; }
+  .result-line { font-size: 20px; }
+  .calc-wrap { border-radius: 8px; }
+  .ap { border-radius: 8px; }
+  .contact-box { border-radius: 8px; }
+}
 
 /* ── Analytics panel ── */
 .ap {
