@@ -29,9 +29,10 @@ body {
   font-family: Georgia, serif;
   min-height: 100vh;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding: 20px;
+  gap: 20px;
 }
 .calc-wrap {
   width: 560px;
@@ -190,6 +191,62 @@ button.b.sym { font-size: 15px; background: var(--canvas); }
 
 /* ── Layout wrapper ── */
 .app-wrap { display: flex; gap: 20px; align-items: flex-start; }
+
+/* ── Contact box ── */
+.contact-box {
+  width: 830px;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 4px 6px 24px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+.ct-head {
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 2.5px;
+}
+.ct-body { padding: 14px 18px; }
+.ct-intro {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.ct-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.ct-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+.ct-field label { font-size: 10px; color: var(--muted); font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+.ct-field input, .ct-field textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--neutral);
+  border-radius: 5px;
+  background: var(--canvas);
+  color: var(--text);
+  font-size: 13px;
+  font-family: Georgia, serif;
+  resize: vertical;
+}
+.ct-field input:focus, .ct-field textarea:focus { outline: 2px solid var(--accent); }
+.ct-field textarea { rows: 3; min-height: 72px; }
+.ct-actions { display: flex; align-items: center; gap: 14px; }
+.ct-submit {
+  padding: 9px 22px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: Georgia, serif;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background .15s;
+}
+.ct-submit:hover { background: #7a3b11; }
+.ct-submit:disabled { background: var(--neutral); cursor: not-allowed; }
+.ct-status { font-size: 12px; }
 
 /* ── Analytics panel ── */
 .ap {
@@ -564,6 +621,34 @@ canvas.ap-canvas { display: block; width: 100%; height: 55px; margin: 4px 0; }
 </div>
 
 </div><!-- /.app-wrap -->
+
+<!-- ── Contact Box ── -->
+<div class="contact-box">
+  <div class="ct-head">✉ CONTACT</div>
+  <div class="ct-body">
+    <p class="ct-intro">If you notice any errors or want to request new features, please fill out this form:</p>
+    <form id="ct-form" novalidate>
+      <div class="ct-row2">
+        <div class="ct-field">
+          <label>Name</label>
+          <input type="text" name="name" placeholder="Your name" required>
+        </div>
+        <div class="ct-field">
+          <label>Reply-to Email</label>
+          <input type="email" name="_replyto" placeholder="your@email.com">
+        </div>
+      </div>
+      <div class="ct-field">
+        <label>Message</label>
+        <textarea name="message" rows="3" placeholder="Describe the error or feature request..." required></textarea>
+      </div>
+      <div class="ct-actions">
+        <button type="submit" class="ct-submit" id="ct-btn">Send Message</button>
+        <span class="ct-status" id="ct-status"></span>
+      </div>
+    </form>
+  </div>
+</div>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────
@@ -1231,6 +1316,38 @@ function apInit() {
 }
 
 apInit();
+
+// ── Contact form ────────────────────────────────────────────────────────
+document.getElementById('ct-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('ct-btn');
+  const status = document.getElementById('ct-status');
+  const msg = this.querySelector('textarea[name="message"]').value.trim();
+  if (!msg) { status.textContent = 'Please enter a message.'; status.style.color = '#8B2020'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  status.textContent = '';
+  try {
+    const res = await fetch('https://formspree.io/[email removed]', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: new FormData(this)
+    });
+    if (res.ok) {
+      this.reset();
+      status.textContent = '✓ Message sent — thank you!';
+      status.style.color = '#5A7A3A';
+    } else {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.error || 'Submission failed');
+    }
+  } catch(err) {
+    status.textContent = '✗ ' + err.message;
+    status.style.color = '#8B2020';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Send Message';
+});
 </script>
 </body>
 </html>
