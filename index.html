@@ -273,11 +273,12 @@ button.b.sym { font-size: 15px; background: var(--canvas); }
 
   <!-- BASIC PAD -->
   <div class="pad active" id="pad-basic">
-    <div class="g5" style="margin-bottom:5px">
+    <div class="g6" style="margin-bottom:5px">
       <button class="b clr" onclick="ac()">AC</button>
       <button class="b accent" onclick="del()">⌫</button>
       <button class="b fn" onclick="ins('(')">(</button>
       <button class="b fn" onclick="ins(')')">)</button>
+      <button class="b fn" onclick="ins(',')">,</button>
       <button class="b op" onclick="ins('%')">%</button>
     </div>
     <div class="g5">
@@ -675,6 +676,7 @@ document.addEventListener('keydown', ev => {
   else if (k === '^') ins('^');
   else if (k === '(') ins('(');
   else if (k === ')') ins(')');
+  else if (k === ',') ins(',');
   else if (k === 'Enter' || k === '=') calc();
   else if (k === 'Backspace') del();
   else if (k === 'Escape') ac();
